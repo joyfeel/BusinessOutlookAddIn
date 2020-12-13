@@ -1,0 +1,13 @@
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\bin\Debug\BusinessOutlookAddIn.dll
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\bin\Debug\BusinessOutlookAddIn.pdb
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\bin\Debug\BusinessOutlookAddIn.dll.manifest
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\bin\Debug\BusinessOutlookAddIn.vsto
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\bin\Debug\Microsoft.Office.Tools.Common.v4.0.Utilities.dll
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\bin\Debug\Microsoft.Office.Tools.Outlook.v4.0.Utilities.dll
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\obj\Debug\BusinessOutlookAddIn.csprojAssemblyReference.cache
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\obj\Debug\BusinessOutlookAddIn.Properties.Resources.resources
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\obj\Debug\BusinessOutlookAddIn.csproj.GenerateResource.cache
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\obj\Debug\BusinessOutlookAddIn.csproj.CoreCompileInputs.cache
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\obj\Debug\BusinessOutlookAddIn.csproj.CopyComplete
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\obj\Debug\BusinessOutlookAddIn.dll
+\\Mac\Home\Desktop\BusinessOutlookAddIn\BusinessOutlookAddIn\obj\Debug\BusinessOutlookAddIn.pdb
