@@ -16,13 +16,20 @@ namespace BusinessOutlookAddIn
         public const int AttachmentContentLength = 2048;             // just in case
         public const string EncryptionHeader = "OSR__DS_FILE_HDR";
 
+        // 例外副檔名( jpg, jpeg, gif, ico, png ) 不核對檔名與收件者網域
+        public static readonly string[] IgnoredMatchRecipientsExtentions = { ".jpg", ".jpeg", ".gif", ".ico", ".png" };
+
         public const string WarningMessagePromptTitle = "附件提醒";
         public const string WarningMessagePromptContent = "仍要傳送信件嗎?";
 
-        public const string WarningMessagePromptNotMatchRecipients = "附檔的專案可能不屬於此收件者";
-        public const string WarningMessagePromptUndecrypted = "附件尚未解密";
+        //public const string WarningMessagePromptNotMatchRecipients = "附檔的專案可能不屬於此收件者";
+        public const string WarningMessagePromptEncrypted = "附件尚未解密";
         public const string WarningMessagePromptForgetAttachment = "可能忘記附加檔案";  // TODO
         public const string WarningMessagePromptFormatIssue = "附檔可能是未翻譯的PPT或檔名命名規則錯誤";
+
+
+        public const string PR_ATTACH_DATA_BIN = "http://schemas.microsoft.com/mapi/proptag/0x37010102";
+        public const string PR_SMTP_ADDRESS = "http://schemas.microsoft.com/mapi/proptag/0x39FE001E";
     }
 
     public class ListMap<T, V> : List<KeyValuePair<T, V>>
@@ -41,6 +48,12 @@ namespace BusinessOutlookAddIn
     public partial class ThisAddIn
     {
         private Outlook.Inspectors inspectors;
+
+        public string WarningMessagePromptNotMatchRecipients = "";
+
+        void resetWarningMessage() {
+            WarningMessagePromptNotMatchRecipients = "";
+        }
 
         private string RemoveSpecialCharacters(string str)
         {
@@ -65,16 +78,33 @@ namespace BusinessOutlookAddIn
         private void ThisAddIn_Shutdown(object sender, System.EventArgs e)
         {
             // Note: Outlook no longer raises this event. If you have code that 
-            //    must run when Outlook shuts down, see https://go.microsoft.com/fwlink/?LinkId=506785
+            // must run when Outlook shuts down, see https://go.microsoft.com/fwlink/?LinkId=506785
+        }
+
+        private bool isImageAttachment(Outlook.Attachment attachment)
+        { 
+            foreach (string extension in Constants.IgnoredMatchRecipientsExtentions)
+            {
+                // Confirm that the attachment is a text file.
+                if (System.IO.Path.GetExtension(attachment.FileName) == extension)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private bool isNotMatchRecipients(Outlook.Attachment attachment, Outlook.MailItem mailItem)
         {
+            if (isImageAttachment(attachment)) {
+                return false;
+            }
+
             string fileName = attachment.FileName;                                      // N0861_Hairpin_Chip_R2_Q_0409
             string currentYear = DateTime.Now.Year.ToString();                          // 2020
             string newFileName = fileName[0] + currentYear + fileName.Substring(1, 4);  // N20200861
 
-            const string PR_SMTP_ADDRESS = "http://schemas.microsoft.com/mapi/proptag/0x39FE001E";
             Outlook.Recipients recips = mailItem.Recipients;
 
             var dummyDB = new ListMap<string, string> {
@@ -89,7 +119,7 @@ namespace BusinessOutlookAddIn
             bool innerLoopError = true;
             foreach (Outlook.Recipient recip in recips)
             {
-                string recipMail = recip.PropertyAccessor.GetProperty(PR_SMTP_ADDRESS).ToString();
+                string recipMail = recip.PropertyAccessor.GetProperty(Constants.PR_SMTP_ADDRESS).ToString();
                 string recipDomain = recipMail.Split('@')[1];
 
                 foreach (var pair in dummyDB)
@@ -99,8 +129,12 @@ namespace BusinessOutlookAddIn
 
                     if (ProjectNumber == newFileName)
                     {
-                        innerLoopError &= (Domain != recipDomain);
+                        innerLoopError = (Domain != recipDomain);
                     }
+                }
+
+                if (innerLoopError) {
+                    WarningMessagePromptNotMatchRecipients += "<" + recipMail + ">" + " 未包含於 " + newFileName + " 的收件清單中" + "\n";
                 }
 
                 hasError |= innerLoopError;
@@ -109,12 +143,10 @@ namespace BusinessOutlookAddIn
             return hasError;
         }
 
-        private bool isUndecryptedAttachment(Outlook.Attachment attachment, Outlook.MailItem mailItem)
+        private bool isEncryptedAttachment(Outlook.Attachment attachment, Outlook.MailItem mailItem)
         {
-            const string PR_ATTACH_DATA_BIN = "http://schemas.microsoft.com/mapi/proptag/0x37010102";
-
             // Retrieve the attachment as an array of bytes.
-            byte[] attachmentData = attachment.PropertyAccessor.GetProperty(PR_ATTACH_DATA_BIN);
+            byte[] attachmentData = attachment.PropertyAccessor.GetProperty(Constants.PR_ATTACH_DATA_BIN);
 
             int attachmentCount = Constants.AttachmentContentLength;
 
@@ -139,8 +171,7 @@ namespace BusinessOutlookAddIn
                 var attachments = mailItem.Attachments; ;
                 string message = "";
                 bool hasNotMatchRecipientsError = false;
-                bool hasUndecryptedError = false;
-
+                bool hasEncryptedError = false;
                 if (attachments == null)
                 {
                     return;
@@ -152,29 +183,28 @@ namespace BusinessOutlookAddIn
                     {
                         if (!hasNotMatchRecipientsError)
                         {
-                            message += Constants.WarningMessagePromptNotMatchRecipients + "\n";
+                            message += WarningMessagePromptNotMatchRecipients + "\n";
                         }
 
                         hasNotMatchRecipientsError = true;
                     }
 
-                    if (isUndecryptedAttachment(attachment, mailItem) == true)
+                    if (isEncryptedAttachment(attachment, mailItem) == true)
                     {
-                        if (!hasUndecryptedError)
+                        if (!hasEncryptedError)
                         {
-                            message += Constants.WarningMessagePromptUndecrypted + "\n";
+                            message += Constants.WarningMessagePromptEncrypted + "\n";
                         }
 
-                        hasUndecryptedError = true;
+                        hasEncryptedError = true;
                     }
                 }
 
-                bool hasError = hasUndecryptedError || hasNotMatchRecipientsError;
+                bool hasError = hasEncryptedError || hasNotMatchRecipientsError;
 
                 if (hasError)
                 {
                     message += Constants.WarningMessagePromptContent;
-
                     DialogResult result = MessageBox.Show(
                         message,
                         Constants.WarningMessagePromptTitle,
@@ -187,6 +217,8 @@ namespace BusinessOutlookAddIn
                     }
                 }
             }
+
+            resetWarningMessage();
         }
 
         #region VSTO generated code
