@@ -22,7 +22,6 @@ namespace BusinessOutlookAddIn
         public const string WarningMessagePromptTitle = "附件提醒";
         public const string WarningMessagePromptContent = "仍要傳送信件嗎?";
 
-        //public const string WarningMessagePromptNotMatchRecipients = "附檔的專案可能不屬於此收件者";
         public const string WarningMessagePromptEncrypted = "附件尚未解密";
         public const string WarningMessagePromptForgetAttachment = "可能忘記附加檔案";  // TODO
         public const string WarningMessagePromptFormatIssue = "附檔可能是未翻譯的PPT或檔名命名規則錯誤";
