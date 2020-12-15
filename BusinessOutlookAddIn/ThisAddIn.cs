@@ -100,10 +100,20 @@ namespace BusinessOutlookAddIn
                 return false;
             }
 
-            string fileName = attachment.FileName;                                      // N0861_Hairpin_Chip_R2_Q_0409
-            string currentYear = DateTime.Now.Year.ToString();                          // 2020
-            string newFileName = fileName[0] + currentYear + fileName.Substring(1, 4);  // N20200861
+            string fileName = attachment.FileName;             // N0861_Hairpin_Chip_R2_Q_0409 or N20200861_Hairpin_Chip_R2_Q_0409
+            string currentYear = DateTime.Now.Year.ToString(); // 2020
 
+            string newFileName = "";
+            string[] splitFileName = fileName.Split('_');
+            newFileName = splitFileName[0];                    // N0861 or N20200861
+
+            if (!newFileName.Contains(currentYear)) {
+                // only for N0861
+                newFileName = newFileName[0] + currentYear + newFileName.Substring(1, 4);
+            }
+
+            //Debug.WriteLine(newFileName);
+            
             Outlook.Recipients recips = mailItem.Recipients;
 
             var dummyDB = new ListMap<string, string> {
