@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -177,6 +177,7 @@ namespace BusinessOutlookAddIn
             }
 
             // Retrieve the attachment as an array of bytes.
+            mailItem.Save();
             byte[] attachmentData = attachment.PropertyAccessor.GetProperty(Constants.PR_ATTACH_DATA_BIN);
 
             int attachmentCount = Constants.AttachmentContentLength;
