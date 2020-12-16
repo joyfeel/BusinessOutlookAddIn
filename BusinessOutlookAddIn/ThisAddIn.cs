@@ -19,6 +19,13 @@ namespace BusinessOutlookAddIn
         // 例外副檔名( jpg, jpeg, gif, ico, png ) 不核對檔名與收件者網域
         public static readonly string[] IgnoredMatchRecipientsExtentions = { ".jpg", ".jpeg", ".gif", ".ico", ".png" };
 
+        // 網域白名單，不檢查加密
+        public static readonly string[] IgnoredEncryptionCheckWhiteList = { "image-model.com" };
+
+        // 合作夥伴，必須檢查加密
+        public static readonly string[] EncryptionCheckWhiteList = { "joe", "wayne" };
+
+
         public const string WarningMessagePromptTitle = "附件提醒";
         public const string WarningMessagePromptContent = "仍要傳送信件嗎?";
 
@@ -154,6 +161,21 @@ namespace BusinessOutlookAddIn
 
         private bool isEncryptedAttachment(Outlook.Attachment attachment, Outlook.MailItem mailItem)
         {
+            Outlook.Recipients recips = mailItem.Recipients;
+
+            foreach (Outlook.Recipient recip in recips)
+            {
+                string recipMail = recip.PropertyAccessor.GetProperty(Constants.PR_SMTP_ADDRESS).ToString();
+                string recipUser = recipMail.Split('@')[0];
+                string recipDomain = recipMail.Split('@')[1];
+
+                if (Constants.IgnoredEncryptionCheckWhiteList.Contains(recipDomain)) {
+                    if (!Constants.EncryptionCheckWhiteList.Contains(recipUser)) {
+                        return false;
+                    }
+                }
+            }
+
             // Retrieve the attachment as an array of bytes.
             byte[] attachmentData = attachment.PropertyAccessor.GetProperty(Constants.PR_ATTACH_DATA_BIN);
 
@@ -213,7 +235,7 @@ namespace BusinessOutlookAddIn
 
                 if (hasError)
                 {
-                    message += Constants.WarningMessagePromptContent;
+                    message += "\n" + Constants.WarningMessagePromptContent;
                     DialogResult result = MessageBox.Show(
                         message,
                         Constants.WarningMessagePromptTitle,
