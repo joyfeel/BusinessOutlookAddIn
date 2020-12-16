@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -145,7 +145,7 @@ namespace BusinessOutlookAddIn
 
                     if (ProjectNumber == newFileName)
                     {
-                        innerLoopError = (Domain != recipDomain);
+                        innerLoopError = (Domain.ToUpper() != recipDomain.ToUpper());
                     }
                 }
 
@@ -169,8 +169,8 @@ namespace BusinessOutlookAddIn
                 string recipUser = recipMail.Split('@')[0];
                 string recipDomain = recipMail.Split('@')[1];
 
-                if (Constants.IgnoredEncryptionCheckWhiteList.Contains(recipDomain)) {
-                    if (!Constants.EncryptionCheckWhiteList.Contains(recipUser)) {
+                if (Constants.IgnoredEncryptionCheckWhiteList.Contains(recipDomain, StringComparer.OrdinalIgnoreCase)) {
+                    if (!Constants.EncryptionCheckWhiteList.Contains(recipUser, StringComparer.OrdinalIgnoreCase)) {
                         return false;
                     }
                 }
