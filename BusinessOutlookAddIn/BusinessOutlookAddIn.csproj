@@ -171,6 +171,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <None Include="BusinessOutlookAddIn_TemporaryKey.pfx" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -201,7 +202,7 @@
     <ManifestKeyFile>BusinessOutlookAddIn_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>19A8B2463FF0A02921B49D7B9F5BD08EE36D4806</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>08616F20F44262B82C05E6D9B126A81E52C59424</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>false</SignAssembly>

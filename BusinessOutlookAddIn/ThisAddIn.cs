@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -138,6 +138,12 @@ namespace BusinessOutlookAddIn
                 string recipMail = recip.PropertyAccessor.GetProperty(Constants.PR_SMTP_ADDRESS).ToString();
                 string recipDomain = recipMail.Split('@')[1];
 
+                // 例外判斷：網域白名單不檢查
+                if (Constants.IgnoredEncryptionCheckWhiteList.Contains(recipDomain, StringComparer.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 foreach (var pair in dummyDB)
                 {
                     string ProjectNumber = pair.Key;
@@ -169,7 +175,9 @@ namespace BusinessOutlookAddIn
                 string recipUser = recipMail.Split('@')[0];
                 string recipDomain = recipMail.Split('@')[1];
 
+                // 例外判斷：網域白名單不檢查
                 if (Constants.IgnoredEncryptionCheckWhiteList.Contains(recipDomain, StringComparer.OrdinalIgnoreCase)) {
+                    // 例外中的例外判斷 (e.g. 合作夥伴)
                     if (!Constants.EncryptionCheckWhiteList.Contains(recipUser, StringComparer.OrdinalIgnoreCase)) {
                         return false;
                     }
