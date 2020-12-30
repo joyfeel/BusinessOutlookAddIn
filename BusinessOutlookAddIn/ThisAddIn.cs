@@ -8,6 +8,7 @@ using Outlook = Microsoft.Office.Interop.Outlook;
 using Office = Microsoft.Office.Core;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace BusinessOutlookAddIn
 {
@@ -16,7 +17,7 @@ namespace BusinessOutlookAddIn
         public const int AttachmentContentLength = 2048;             // just in case
         public const string EncryptionHeader = "OSR__DS_FILE_HDR";
 
-        // 例外副檔名( jpg, jpeg, gif, ico, png ) 不核對檔名與收件者網域
+        // 例外副檔名( jpg, jpeg, gif, ico, png ) 不核對檔名與收件者網域, 也不檢查命名原則
         public static readonly string[] IgnoredMatchRecipientsExtentions = { ".jpg", ".jpeg", ".gif", ".ico", ".png" };
 
         // 網域白名單，不檢查加密
@@ -28,14 +29,19 @@ namespace BusinessOutlookAddIn
         // 關鍵字審查
         public static readonly string[] CheckBodyKeywords = { "attachment", "attached", "附件", "附檔" };
 
+        // 檢查附件命名原則
+        public static readonly string[] ProjectCapital = { "N", "R", "F" };
+
+        public static readonly string[] ProjectFixedAlphabet = { "Q" };
 
         public const string WarningMessagePromptTitle = "附件提醒";
         public const string WarningMessagePromptContent = "仍要傳送信件嗎?";
 
         public const string WarningMessagePromptEncrypted = "附件尚未解密";
-        public const string WarningMessagePromptFormatIssue = "附檔可能是未翻譯的PPT或檔名命名規則錯誤";
 
         public const string WarningMessagePromptForgetAttachment = "可能忘記附加檔案";
+
+        public const string WarningMessagePromptFormatIssue = "檔名命名規則錯誤";
 
         public const string PR_ATTACH_DATA_BIN = "http://schemas.microsoft.com/mapi/proptag/0x37010102";
         public const string PR_SMTP_ADDRESS = "http://schemas.microsoft.com/mapi/proptag/0x39FE001E";
@@ -110,7 +116,7 @@ namespace BusinessOutlookAddIn
                 return false;
             }
 
-            string fileName = attachment.FileName;             // N0861_Hairpin_Chip_R2_Q_0409 or N20200861_Hairpin_Chip_R2_Q_0409
+            string fileName = Path.GetFileNameWithoutExtension(attachment.FileName);             // N0861_Hairpin_Chip_R2_Q_0409 or N20200861_Hairpin_Chip_R2_Q_0409
             string currentYear = DateTime.Now.Year.ToString(); // 2020
 
             string newFileName = "";
@@ -205,6 +211,42 @@ namespace BusinessOutlookAddIn
             return isMatch;
         }
 
+        private bool hasWrongAttachmentName(Outlook.Attachment attachment)
+        {
+            if (isImageAttachment(attachment))
+            {
+                return false;
+            }
+
+            string fileName = Path.GetFileNameWithoutExtension(attachment.FileName);                  // NXXX_XXXX_Q_1210 
+            string[] splitFileName = fileName.Split('_');
+            string currentDate = DateTime.Now.ToString("MMdd");                                       // 1231
+
+            if (splitFileName.Length != 4) {
+                return true;
+            }
+
+            // N
+            if (!Constants.ProjectCapital.Contains(splitFileName[0][0].ToString())) {
+                return true;
+            }
+
+            // Q
+            if (!Constants.ProjectFixedAlphabet.Contains(splitFileName[2].ToString()))
+            {
+                return true;
+            }
+
+            // date
+            if (splitFileName[3].ToString() != currentDate)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+
         void Application_ItemSend(object Item, ref bool Cancel)
         {
             Outlook.MailItem mailItem = Item as Outlook.MailItem;
@@ -216,6 +258,7 @@ namespace BusinessOutlookAddIn
                 bool hasNotMatchRecipientsError = false;
                 bool hasEncryptedError = false;
                 bool hasMissedAttachmentError = false;
+                bool hasAttachmentNameError = false;
 
                 // 關鍵字審查
                 if (attachments.Count == 0) 
@@ -249,10 +292,20 @@ namespace BusinessOutlookAddIn
 
                             hasEncryptedError = true;
                         }
+
+                        if (hasWrongAttachmentName(attachment) == true)
+                        {
+                            if (!hasAttachmentNameError)
+                            {
+                                message += Constants.WarningMessagePromptFormatIssue + "\n";
+                            }
+
+                            hasAttachmentNameError = true;
+                        }
                     }
                 }
 
-                bool hasError = hasEncryptedError || hasNotMatchRecipientsError || hasMissedAttachmentError;
+                bool hasError = hasEncryptedError || hasNotMatchRecipientsError || hasMissedAttachmentError || hasAttachmentNameError;
 
                 if (hasError)
                 {
