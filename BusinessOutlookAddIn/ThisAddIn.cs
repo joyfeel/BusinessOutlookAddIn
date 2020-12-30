@@ -7,7 +7,7 @@ using System.Xml.Linq;
 using Outlook = Microsoft.Office.Interop.Outlook;
 using Office = Microsoft.Office.Core;
 using System.Diagnostics;
-
+using System.Text.RegularExpressions;
 
 namespace BusinessOutlookAddIn
 {
@@ -25,14 +25,17 @@ namespace BusinessOutlookAddIn
         // 合作夥伴，必須檢查加密
         public static readonly string[] EncryptionCheckWhiteList = { "joe", "wayne" };
 
+        // 關鍵字審查
+        public static readonly string[] CheckBodyKeywords = { "attachment", "attached", "附件", "附檔" };
+
 
         public const string WarningMessagePromptTitle = "附件提醒";
         public const string WarningMessagePromptContent = "仍要傳送信件嗎?";
 
         public const string WarningMessagePromptEncrypted = "附件尚未解密";
-        public const string WarningMessagePromptForgetAttachment = "可能忘記附加檔案";  // TODO
         public const string WarningMessagePromptFormatIssue = "附檔可能是未翻譯的PPT或檔名命名規則錯誤";
 
+        public const string WarningMessagePromptForgetAttachment = "可能忘記附加檔案";
 
         public const string PR_ATTACH_DATA_BIN = "http://schemas.microsoft.com/mapi/proptag/0x37010102";
         public const string PR_SMTP_ADDRESS = "http://schemas.microsoft.com/mapi/proptag/0x39FE001E";
@@ -88,7 +91,7 @@ namespace BusinessOutlookAddIn
         }
 
         private bool isImageAttachment(Outlook.Attachment attachment)
-        { 
+        {
             foreach (string extension in Constants.IgnoredMatchRecipientsExtentions)
             {
                 // Confirm that the attachment is a text file.
@@ -120,7 +123,7 @@ namespace BusinessOutlookAddIn
             }
 
             //Debug.WriteLine(newFileName);
-            
+
             Outlook.Recipients recips = mailItem.Recipients;
 
             var dummyDB = new ListMap<string, string> {
@@ -208,39 +211,48 @@ namespace BusinessOutlookAddIn
 
             if (mailItem != null)
             {
-                var attachments = mailItem.Attachments; ;
+                var attachments = mailItem.Attachments;
                 string message = "";
                 bool hasNotMatchRecipientsError = false;
                 bool hasEncryptedError = false;
-                if (attachments == null)
-                {
-                    return;
-                }
+                bool hasMissedAttachmentError = false;
 
-                foreach (Outlook.Attachment attachment in attachments)
+                // 關鍵字審查
+                if (attachments.Count == 0) 
                 {
-                    if (isNotMatchRecipients(attachment, mailItem) == true)
+                    foreach (string keyword in Constants.CheckBodyKeywords)
                     {
-                        if (!hasNotMatchRecipientsError)
+                        if (System.Text.RegularExpressions.Regex.IsMatch(mailItem.Body, keyword, RegexOptions.IgnoreCase)) {
+                            hasMissedAttachmentError = true;
+                            message += Constants.WarningMessagePromptForgetAttachment + "\n";
+                        }
+                    }
+                } else { 
+                    foreach (Outlook.Attachment attachment in attachments)
+                    {
+                        if (isNotMatchRecipients(attachment, mailItem) == true)
                         {
-                            message += WarningMessagePromptNotMatchRecipients + "\n";
+                            if (!hasNotMatchRecipientsError)
+                            {
+                                message += WarningMessagePromptNotMatchRecipients + "\n";
+                            }
+
+                            hasNotMatchRecipientsError = true;
                         }
 
-                        hasNotMatchRecipientsError = true;
-                    }
-
-                    if (isEncryptedAttachment(attachment, mailItem) == true)
-                    {
-                        if (!hasEncryptedError)
+                        if (isEncryptedAttachment(attachment, mailItem) == true)
                         {
-                            message += Constants.WarningMessagePromptEncrypted + "\n";
-                        }
+                            if (!hasEncryptedError)
+                            {
+                                message += Constants.WarningMessagePromptEncrypted + "\n";
+                            }
 
-                        hasEncryptedError = true;
+                            hasEncryptedError = true;
+                        }
                     }
                 }
 
-                bool hasError = hasEncryptedError || hasNotMatchRecipientsError;
+                bool hasError = hasEncryptedError || hasNotMatchRecipientsError || hasMissedAttachmentError;
 
                 if (hasError)
                 {
