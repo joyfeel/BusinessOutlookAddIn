@@ -211,38 +211,54 @@ namespace BusinessOutlookAddIn
             return isMatch;
         }
 
-        private bool hasWrongAttachmentName(Outlook.Attachment attachment)
+        private bool hasWrongAttachmentName(Outlook.Attachment attachment, Outlook.MailItem mailItem)
         {
             if (isImageAttachment(attachment))
             {
                 return false;
             }
 
-            string fileName = Path.GetFileNameWithoutExtension(attachment.FileName);                  // NXXX_XXXX_Q_1210 
-            string[] splitFileName = fileName.Split('_');
-            string currentDate = DateTime.Now.ToString("MMdd");                                       // 1231
+            Outlook.Recipients recips = mailItem.Recipients;
 
-            if (splitFileName.Length != 4) {
-                return true;
-            }
-
-            // N
-            if (!Constants.ProjectCapital.Contains(splitFileName[0][0].ToString())) {
-                return true;
-            }
-
-            // Q
-            if (!Constants.ProjectFixedAlphabet.Contains(splitFileName[2].ToString()))
+            foreach (Outlook.Recipient recip in recips)
             {
-                return true;
-            }
+                string recipMail = recip.PropertyAccessor.GetProperty(Constants.PR_SMTP_ADDRESS).ToString();
+                string recipDomain = recipMail.Split('@')[1];
 
-            // date
-            if (splitFileName[3].ToString() != currentDate)
-            {
-                return true;
-            }
+                // 例外判斷：網域白名單不檢查
+                if (Constants.IgnoredEncryptionCheckWhiteList.Contains(recipDomain, StringComparer.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
 
+                string fileName = Path.GetFileNameWithoutExtension(attachment.FileName);                  // NXXX_XXXX_Q_1210 
+                string[] splitFileName = fileName.Split('_');
+                string currentDate = DateTime.Now.ToString("MMdd");                                       // 1231
+
+                if (splitFileName.Length != 4)
+                {
+                    return true;
+                }
+
+                // N
+                if (!Constants.ProjectCapital.Contains(splitFileName[0][0].ToString()))
+                {
+                    return true;
+                }
+
+                // Q
+                if (!Constants.ProjectFixedAlphabet.Contains(splitFileName[2].ToString()))
+                {
+                    return true;
+                }
+
+                // date
+                if (splitFileName[3].ToString() != currentDate)
+                {
+                    return true;
+                }
+            }
+            
             return false;
         }
 
@@ -259,9 +275,16 @@ namespace BusinessOutlookAddIn
                 bool hasEncryptedError = false;
                 bool hasMissedAttachmentError = false;
                 bool hasAttachmentNameError = false;
+                int attachmentCount = 0;
+
+                foreach (Outlook.Attachment attachment in attachments) {
+                    if (!isImageAttachment(attachment)) {
+                        attachmentCount++;
+                    }
+                }
 
                 // 關鍵字審查
-                if (attachments.Count == 0) 
+                if (attachmentCount == 0) 
                 {
                     foreach (string keyword in Constants.CheckBodyKeywords)
                     {
@@ -293,7 +316,7 @@ namespace BusinessOutlookAddIn
                             hasEncryptedError = true;
                         }
 
-                        if (hasWrongAttachmentName(attachment) == true)
+                        if (hasWrongAttachmentName(attachment, mailItem) == true)
                         {
                             if (!hasAttachmentNameError)
                             {
