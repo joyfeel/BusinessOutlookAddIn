@@ -24,7 +24,7 @@ namespace BusinessOutlookAddIn
         public static readonly string[] IgnoredEncryptionCheckWhiteList = { "image-model.com" };
 
         // 合作夥伴，必須檢查加密
-        public static readonly string[] EncryptionCheckWhiteList = { "joe", "wayne" };
+        public static readonly string[] EncryptionCheckWhiteList = { "jaz", "joe", "wayne" };
 
         // 關鍵字審查
         public static readonly string[] CheckBodyKeywords = { "attachment", "attached", "附件", "附檔" };
